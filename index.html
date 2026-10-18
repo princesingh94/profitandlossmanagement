@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ledgerline · P&L Analytics</title>
+<meta name="description" content="Profit & Loss analytics dashboard">
+<style>
+:root{--bg:#0a0e14;--glow1:rgba(45,212,191,.16);--glow2:rgba(99,102,241,.16);--card:rgba(255,255,255,.05);--line:rgba(255,255,255,.1);--text:#e8edf4;--mute:#8d99ab;--grid:rgba(255,255,255,.07);--up:#34d399;--down:#fb7185;--acc:#2dd4bf;--shadow:0 10px 30px rgba(0,0,0,.35);--fs:clamp(.85rem,.8rem + .2vw,.95rem);color-scheme:dark}
+[data-theme=light]{--bg:#f3f5f9;--glow1:rgba(45,212,191,.18);--glow2:rgba(99,102,241,.14);--card:rgba(255,255,255,.7);--line:rgba(15,23,42,.1);--text:#0f172a;--mute:#5b6678;--grid:rgba(15,23,42,.07);--up:#059669;--down:#e11d48;--acc:#0d9488;--shadow:0 10px 30px rgba(15,23,42,.08);color-scheme:light}
+[data-theme=contrast]{--bg:#000;--glow1:transparent;--glow2:transparent;--card:#000;--line:#fff;--text:#fff;--mute:#e0e0e0;--grid:rgba(255,255,255,.35);--up:#00ff7f;--down:#ff5c5c;--acc:#ffe600;--shadow:none}
+*{box-sizing:border-box;margin:0}
+body{font:var(--fs)/1.5 "Inter",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text);min-height:100vh;background:radial-gradient(60rem 30rem at 10% -10%,var(--glow1),transparent),radial-gradient(50rem 30rem at 100% 0,var(--glow2),transparent),var(--bg);background-attachment:fixed}
+h1{font-size:clamp(1.1rem,1rem + .6vw,1.4rem);letter-spacing:-.02em}
+h2{font-size:clamp(.95rem,.9rem + .3vw,1.1rem);font-weight:600;margin-bottom:.75rem}
+.top{display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between;align-items:center;padding:1rem clamp(1rem,3vw,2rem);position:sticky;top:0;z-index:10;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--bg) 70%,transparent)}
+.brand{display:flex;gap:.75rem;align-items:center}.brand p{color:var(--mute);font-size:.8em}
+.logo{width:2.2rem;height:2.2rem;border-radius:.7rem;background:conic-gradient(from 200deg,var(--acc),#6366f1,var(--acc));box-shadow:0 0 22px var(--glow1)}
+.controls{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.seg{display:flex;padding:.2rem;border:1px solid var(--line);border-radius:.7rem;background:var(--card)}
+.seg button{border:0;background:none;color:var(--mute);padding:.35rem .7rem;border-radius:.5rem;font:inherit;cursor:pointer;transition:.2s}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--acc);color:#04201c;font-weight:600;box-shadow:0 0 14px var(--glow1)}
+select,.btn,input{font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:.7rem;padding:.45rem .8rem}
+.btn{cursor:pointer;transition:.2s}.btn:hover{border-color:var(--acc)}
+.btn.primary{background:linear-gradient(135deg,var(--acc),#6366f1);color:#06121a;font-weight:600;border-color:transparent}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+main{max-width:1400px;margin:auto;padding:clamp(1rem,3vw,2rem);display:grid;gap:1.25rem}
+.kpis{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:1.1rem;padding:1.1rem;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);transition:transform .25s,box-shadow .25s,border-color .25s}
+.card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--acc) 50%,var(--line));box-shadow:var(--shadow),0 0 28px var(--glow1)}
+.kpi small{color:var(--mute)}.kpi b{display:block;font-size:clamp(1.4rem,1.1rem + 1.2vw,2rem);letter-spacing:-.03em;margin:.2rem 0;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--mute);font-size:.85em}
+.badge,.chip{display:inline-block;padding:.1rem .55rem;border-radius:99px;font-size:.78rem;font-weight:600;border:1px solid transparent}
+.up{color:var(--up);background:color-mix(in srgb,var(--up) 15%,transparent);border-color:color-mix(in srgb,var(--up) 35%,transparent)}
+.down{color:var(--down);background:color-mix(in srgb,var(--down) 15%,transparent);border-color:color-mix(in srgb,var(--down) 35%,transparent)}
+.grid{display:grid;gap:1.25rem;grid-template-columns:repeat(3,1fr)}
+.span2{grid-column:span 2}.span3{grid-column:span 3}
+.chart{position:relative;height:300px}.chart.tall{height:340px}
+.tbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.75rem;align-items:center}.tbar h2{margin:0}
+.scroll{overflow-x:auto;margin-top:.75rem}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;min-width:720px}
+th,td{padding:.65rem .8rem;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th:last-child,td:last-child{text-align:center}
+th{color:var(--mute);font-weight:500;cursor:pointer;user-select:none}th:hover{color:var(--text)}
+th.s::after{content:attr(data-d)}
+tbody tr:hover{background:color-mix(in srgb,var(--acc) 8%,transparent)}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}::-webkit-scrollbar-track{background:transparent}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.span2,.span3{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{.top .controls,#q{display:none}body{background:#fff;color:#000}.card{box-shadow:none;break-inside:avoid}}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true"></span><div><h1>Ledgerline</h1><p>Profit &amp; loss analytics</p></div></div>
+  <nav class="controls" aria-label="Dashboard controls">
+    <div class="seg" id="range" role="group" aria-label="Time range">
+      <button data-v="1">1M</button><button data-v="3">3M</button><button data-v="6">6M</button><button data-v="12" class="on">1Y</button><button data-v="0">All</button>
+    </div>
+    <div class="seg" id="metric" role="group" aria-label="Profit basis"><button data-v="gross">Gross</button><button data-v="net" class="on">Net</button></div>
+    <div class="seg" id="mode" role="group" aria-label="Value mode"><button data-v="usd" class="on">Amount</button><button data-v="pct">Margin %</button></div>
+    <select id="cur" aria-label="Currency"><option>USD</option><option>EUR</option><option>GBP</option><option>INR</option></select>
+    <button class="btn" id="theme" aria-label="Change theme">Theme: Dark</button>
+    <button class="btn primary" id="export">Export report</button>
+  </nav>
+</header>
+<main>
+  <section class="kpis" id="kpis" aria-label="Executive summary"></section>
+  <section class="grid">
+    <article class="card span2"><h2>Revenue to net income</h2><div class="chart"><canvas id="c-water"></canvas></div></article>
+    <article class="card"><h2>Expenses by category</h2><div class="chart"><canvas id="c-donut"></canvas></div></article>
+    <article class="card span3"><h2 id="tl-title">Revenue vs. expenses</h2><div class="chart tall"><canvas id="c-line"></canvas></div></article>
+  </section>
+  <section class="card" aria-label="Monthly breakdown">
+    <div class="tbar"><h2>Monthly breakdown</h2><input id="q" type="search" placeholder="Search month or status" aria-label="Search table"></div>
+    <div class="scroll"><table id="tbl"><thead><tr>
+      <th data-k="i">Month</th><th data-k="rev">Revenue</th><th data-k="cogs">COGS</th><th data-k="opex">OPEX</th><th data-k="gp">Gross profit</th><th data-k="net">Net profit</th><th data-k="nm">Margin</th><th data-k="net">Status</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+</main>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const S = { n: 12, metric: 'net', mode: 'usd', cur: 'USD', sortK: 'i', dir: -1, q: '' };
+const RATE = { USD: 1, EUR: .92, GBP: .79, INR: 83.2 };
+const LOC = { USD: 'en-US', EUR: 'de-DE', GBP: 'en-GB', INR: 'en-IN' };
+const THEMES = ['dark', 'light', 'contrast'];
+const CATS = [['mk', 'Marketing', '#6366f1'], ['rd', 'R&D', '#2dd4bf'], ['sal', 'Salaries', '#f59e0b'], ['ops', 'Operations', '#ec4899']];
+
+/* ---------- Mock data (seeded so it's stable between reloads) ---------- */
+let seed = 42;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const DATA = Array.from({ length: 24 }, (_, i) => {
+  const rev = 300000 * 1.025 ** i * (1 + .12 * Math.sin(i / 1.9)) * (.96 + rnd() * .08);
+  const cogs = rev * (.40 + rnd() * .04);
+  const mk = rev * .10 * (.8 + rnd() * .5), rd = 40000 * 1.015 ** i * (.9 + rnd() * .2);
+  const sal = 70000 * 1.012 ** i, ops = rev * .05 + 15000 + rnd() * 6000;
+  const opex = mk + rd + sal + ops, gp = rev - cogs, net = gp - opex;
+  const d = new Date(2024, 10 + i, 1);
+  return { i, label: d.toLocaleString('en', { month: 'short', year: '2-digit' }), rev, cogs, mk, rd, sal, ops, opex, gp, net, nm: net / rev * 100, gm: gp / rev * 100 };
+});
+
+/* ---------- Helpers ---------- */
+const fmt = (v, compact = true) => new Intl.NumberFormat(LOC[S.cur], { style: 'currency', currency: S.cur, notation: compact ? 'compact' : 'standard', maximumFractionDigits: compact ? 1 : 0 }).format(v * RATE[S.cur]);
+const sum = (a, k) => a.reduce((s, r) => s + r[k], 0);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const view = () => (S.n ? DATA.slice(-S.n) : DATA);
+const prevView = () => (S.n && DATA.length >= S.n * 2 ? DATA.slice(-S.n * 2, -S.n) : null);
+const delta = (c, p) => (p ? (c - p) / Math.abs(p) * 100 : null);
+const badge = d => d === null ? '' : `<span class="badge ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%</span>`;
+
+/* ---------- KPIs ---------- */
+function renderKPIs() {
+  const v = view(), p = prevView(), t = k => sum(v, k), pt = k => p && sum(p, k);
+  const rev = t('rev'), gp = t('gp'), opex = t('opex'), net = t('net'), cost = t('cogs') + opex;
+  const wins = v.filter(r => r.net > 0).length;
+  const cards = [
+    ['Total revenue', fmt(rev), badge(delta(rev, pt('rev'))) + ' vs prior period', ''],
+    ['Gross profit', fmt(gp), `<span class="badge up">${(gp / rev * 100).toFixed(1)}% margin</span>`, ''],
+    ['Operating expenses', fmt(opex), CATS.map(c => `${c[1]} ${(t(c[0]) / opex * 100).toFixed(0)}%`).join(' · '), ''],
+    ['Net ' + (net >= 0 ? 'profit' : 'loss'), fmt(net), `<span class="badge ${net >= 0 ? 'up' : 'down'}">${net >= 0 ? 'Profitable' : 'Deficit'}</span> ${(net / rev * 100).toFixed(1)}% margin`, net >= 0 ? 'up' : 'down'],
+    ['ROI · win ratio', (net / cost * 100).toFixed(1) + '%', `${wins} of ${v.length} months profitable (${(wins / v.length * 100).toFixed(0)}%)`, ''],
+  ];
+  $('#kpis').innerHTML = cards.map(c => `<article class="card kpi"><small>${c[0]}</small><b ${c[3] ? `class="${c[3]}" style="background:none;border:0"` : ''}>${c[1]}</b><span>${c[2]}</span></article>`).join('');
+}
+
+/* ---------- Charts ---------- */
+const charts = {};
+const crosshair = { id: 'crosshair', afterDatasetsDraw(ch) {
+  const a = ch.tooltip && ch.tooltip.getActiveElements();
+  if (!a || !a.length) return;
+  const { ctx, chartArea: ca } = ch, x = a[0].element.x;
+  ctx.save(); ctx.strokeStyle = css('--mute'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(x, ca.top); ctx.lineTo(x, ca.bottom); ctx.stroke(); ctx.restore();
+} };
+function make(id, cfg) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart($(id), cfg);
+}
+function renderCharts() {
+  Chart.defaults.color = css('--mute'); Chart.defaults.borderColor = css('--grid');
+  Chart.defaults.font.family = 'Inter,system-ui,sans-serif';
+  const v = view(), up = css('--up'), down = css('--down'), acc = css('--acc'), R = RATE[S.cur];
+  const pct = S.mode === 'pct', tick = x => pct ? x + '%' : fmt(x / R);
+  const base = { responsive: true, maintainAspectRatio: false };
+
+  // Waterfall
+  const rev = sum(v, 'rev'), cogs = sum(v, 'cogs'), opex = sum(v, 'opex'), gp = rev - cogs, net = gp - opex;
+  make('#c-water', { type: 'bar', data: { labels: ['Revenue', 'COGS', 'Gross profit', 'OPEX', 'Net income'],
+    datasets: [{ data: [[0, rev], [gp, rev], [0, gp], [net, gp], [0, net]].map(a => a.map(x => x * R)), borderRadius: 6,
+      backgroundColor: [acc, down, up, down, net >= 0 ? up : down] }] },
+    options: { ...base, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => { const [a, b] = c.raw; return fmt((b - a) / R, false); } } } },
+      scales: { y: { ticks: { callback: tick } } } } });
+
+  // Doughnut
+  make('#c-donut', { type: 'doughnut', data: { labels: CATS.map(c => c[1]), datasets: [{ data: CATS.map(c => sum(v, c[0]) * R), backgroundColor: CATS.map(c => c[2]), borderColor: 'transparent', hoverOffset: 10 }] },
+    options: { ...base, cutout: '66%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw / R)} (${(c.raw / R / opex * 100).toFixed(1)}%)` } } } } });
+
+  // Timeline
+  const m = S.metric, name = m === 'net' ? 'Net profit' : 'Gross profit';
+  $('#tl-title').textContent = pct ? `${name} margin over time` : 'Revenue vs. expenses';
+  const ds = pct
+    ? [{ label: name + ' margin %', data: v.map(r => +(m === 'net' ? r.nm : r.gm).toFixed(1)), borderColor: acc, backgroundColor: acc + '33', fill: true }]
+    : [{ label: 'Revenue', data: v.map(r => r.rev * R), borderColor: acc, backgroundColor: acc + '30', fill: true },
+       { label: 'Expenses', data: v.map(r => (r.cogs + r.opex) * R), borderColor: down, backgroundColor: down + '20', fill: true },
+       { label: name, data: v.map(r => r[m] * R), borderColor: '#818cf8', borderDash: [6, 4], fill: false }];
+  make('#c-line', { type: 'line', plugins: [crosshair], data: { labels: v.map(r => r.label), datasets: ds.map(d => ({ ...d, tension: .4, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 })) },
+    options: { ...base, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${pct ? c.raw + '%' : fmt(c.raw / R, false)}` } } },
+      scales: { y: { ticks: { callback: tick } } } } });
+}
+
+/* ---------- Table ---------- */
+function renderTable() {
+  const q = S.q.toLowerCase();
+  const rows = view().filter(r => !q || r.label.toLowerCase().includes(q) || (r.net > 0 ? 'profitable' : 'deficit').includes(q))
+    .sort((a, b) => (a[S.sortK] - b[S.sortK]) * S.dir);
+  $('#tbl tbody').innerHTML = rows.length ? rows.map(r => `<tr><td>${r.label}</td><td>${fmt(r.rev, false)}</td><td>${fmt(r.cogs, false)}</td><td>${fmt(r.opex, false)}</td><td>${fmt(r.gp, false)}</td><td>${fmt(r.net, false)}</td><td>${r.nm.toFixed(1)}%</td><td><span class="chip ${r.net > 0 ? 'up' : 'down'}">${r.net > 0 ? 'Profitable' : 'Deficit'}</span></td></tr>`).join('')
+    : '<tr><td colspan="8">No months match your search. Clear the search box to see all rows.</td></tr>';
+  document.querySelectorAll('th').forEach(th => { th.classList.toggle('s', th.dataset.k === S.sortK); th.dataset.d = S.dir > 0 ? ' ▲' : ' ▼'; });
+}
+
+/* ---------- Export ---------- */
+function exportCSV() {
+  const h = ['Month', 'Revenue', 'COGS', 'OPEX', 'Gross profit', 'Net profit', 'Net margin %'];
+  const rows = view().map(r => [r.label, r.rev, r.cogs, r.opex, r.gp, r.net, r.nm].map((x, i) => i && i < 6 ? (x * RATE[S.cur]).toFixed(2) : i ? x.toFixed(1) : x));
+  const csv = [h, ...rows].map(r => r.join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })), download: `pl-report-${S.cur}.csv` });
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- Wiring ---------- */
+const renderAll = () => { renderKPIs(); renderCharts(); renderTable(); };
+function seg(id, key, parse = x => x) {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    $(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    S[key] = parse(b.dataset.v); renderAll();
+  });
+}
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $('#theme').textContent = 'Theme: ' + t[0].toUpperCase() + t.slice(1);
+  try { localStorage.setItem('pl-theme', t); } catch (e) {}
+}
+window.addEventListener('DOMContentLoaded', () => {
+  seg('#range', 'n', Number); seg('#metric', 'metric'); seg('#mode', 'mode');
+  $('#cur').addEventListener('change', e => { S.cur = e.target.value; renderAll(); });
+  $('#theme').addEventListener('click', () => { setTheme(THEMES[(THEMES.indexOf(document.documentElement.dataset.theme) + 1) % 3]); renderCharts(); });
+  $('#export').addEventListener('click', exportCSV);
+  $('#q').addEventListener('input', e => { S.q = e.target.value; renderTable(); });
+  $('#tbl thead').addEventListener('click', e => {
+    const th = e.target.closest('th'); if (!th) return;
+    S.dir = S.sortK === th.dataset.k ? -S.dir : -1; S.sortK = th.dataset.k; renderTable();
+  });
+  let t = 'dark'; try { t = localStorage.getItem('pl-theme') || t; } catch (e) {}
+  setTheme(t); renderAll();
+});
+</script>
+</body>
+</html>
